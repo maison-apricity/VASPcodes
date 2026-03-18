@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# GitHub backup copy
+# Original file: VASP_vibfreq.py
+# Suggested English filename: vasp_vibration_outcar_to_ovito.py
+
 """
 VASP OUTCAR finite-difference vibrational analysis -> OVITO-friendly exports
 
@@ -109,7 +113,7 @@ def _extract_nfree(lines: Sequence[str]) -> int:
                             return int(float(toks[j]))
                         except ValueError:
                             pass
-    raise ValueError("OUTCAR에서 NFREE를 찾지 못했습니다.")
+    raise ValueError("Could not parse from OUTCAR NFREE를 not found.")
 
 
 def _extract_ions_per_type(lines: Sequence[str]) -> List[int]:
@@ -118,7 +122,7 @@ def _extract_ions_per_type(lines: Sequence[str]) -> List[int]:
         m = pat.search(line)
         if m:
             return [int(x) for x in m.group(1).split()]
-    raise ValueError("OUTCAR에서 'ions per type'를 찾지 못했습니다.")
+    raise ValueError("Could not parse from OUTCAR 'ions per type'를 not found.")
 
 
 def _extract_symbols_and_masses(lines: Sequence[str], counts: Sequence[int]) -> Tuple[List[str], np.ndarray]:
@@ -150,9 +154,9 @@ def _extract_symbols_and_masses(lines: Sequence[str], counts: Sequence[int]) -> 
                 break
 
     if len(symbols_by_type) != len(counts):
-        raise ValueError("OUTCAR에서 원소 기호(VRHFIN/TITEL)를 충분히 찾지 못했습니다.")
+        raise ValueError("Could not parse from OUTCAR 원소 기호(VRHFIN/TITEL)를 충분히 not found.")
     if len(masses_by_type) != len(counts):
-        raise ValueError("OUTCAR에서 POMASS를 충분히 찾지 못했습니다.")
+        raise ValueError("Could not parse from OUTCAR POMASS를 충분히 not found.")
 
     symbols: List[str] = []
     masses: List[float] = []
@@ -175,7 +179,7 @@ def _extract_lattice(lines: Sequence[str]) -> np.ndarray:
                     raise ValueError("격자벡터 블록 파싱 실패")
                 lat.append([float(toks[0]), float(toks[1]), float(toks[2])])
             return np.array(lat, dtype=float)
-    raise ValueError("OUTCAR에서 'direct lattice vectors' 블록을 찾지 못했습니다.")
+    raise ValueError("Could not parse from OUTCAR 'direct lattice vectors' 블록을 not found.")
 
 
 
@@ -206,7 +210,7 @@ def _extract_position_force_blocks(lines: Sequence[str], natoms: int) -> Tuple[L
         i += 1
 
     if len(positions) == 0:
-        raise ValueError("OUTCAR에서 POSITION/TOTAL-FORCE 블록을 하나도 찾지 못했습니다.")
+        raise ValueError("Could not parse from OUTCAR POSITION/TOTAL-FORCE 블록을 하나도 not found.")
     return positions, forces
 
 
@@ -651,13 +655,13 @@ def main() -> None:
     )
 
     # Console summary
-    print(f"[완료] OUTCAR: {args.outcar}")
-    print(f"[정보] 원자 수: {out.natoms}")
-    print(f"[정보] NFREE: {out.nfree}")
-    print(f"[정보] POSITION/TOTAL-FORCE 블록 수: {len(out.positions_blocks)}")
-    print(f"[정보] 고정 DOF 수: {int(np.sum(fixed_mask))} / {3*out.natoms}")
-    print(f"[정보] zero-mode projection: {args.project}")
-    print(f"[정보] 출력 prefix: {args.prefix}")
+    print(f"[Done] OUTCAR: {args.outcar}")
+    print(f"[Info] Number of atoms: {out.natoms}")
+    print(f"[Info] NFREE: {out.nfree}")
+    print(f"[Info] POSITION/TOTAL-FORCE 블록 수: {len(out.positions_blocks)}")
+    print(f"[Info] 고정 DOF 수: {int(np.sum(fixed_mask))} / {3*out.natoms}")
+    print(f"[Info] zero-mode projection: {args.project}")
+    print(f"[Info] 출력 prefix: {args.prefix}")
     print()
     print(" mode    freq(cm^-1)   imag")
     print("-----  ------------   ----")

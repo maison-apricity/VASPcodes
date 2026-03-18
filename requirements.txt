@@ -1,0 +1,6 @@
+numpy
+matplotlib
+plotly
+ase
+py4vasp
+pymatgen

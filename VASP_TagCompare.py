@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# GitHub backup copy
+# Original file: VASP_TagCompare.py
+# Suggested English filename: vasp_outcar_compare.py
+
 import argparse
 import re
 import sys
 from collections import OrderedDict, defaultdict
 
 # ============================================================
-# 0) 완전히 무시할 키/정보
+# 0) 완전히 무시할 키/Info
 # ============================================================
 IGNORE_KEYS = {
     "COPYR",
@@ -252,7 +256,7 @@ def parse_lattice_block(lines, idx, store):
 
 def parse_cell_volume(lines, store):
     """
-    OUTCAR에서 volume of cell 추출
+    Could not parse from OUTCAR volume of cell 추출
     """
     vol_re = re.compile(r'volume of cell\s*:\s*([+-]?(?:\d+\.\d*|\.\d+|\d+)(?:[EeDd][+-]?\d+)?)', re.IGNORECASE)
     for line in lines:
@@ -328,7 +332,7 @@ def compare_category(d1: OrderedDict, d2: OrderedDict, category: str):
             v1 = d1[key]["core_values"]
             v2 = d2[key]["core_values"]
 
-            # POTCAR/시스템 정보는 full sequence 비교
+            # POTCAR/시스템 Info는 full sequence 비교
             if category == "potcar_system":
                 s1 = " || ".join(v1)
                 s2 = " || ".join(v2)
@@ -454,7 +458,7 @@ def print_single_table(title, rows, key_w):
 def main():
     parser = argparse.ArgumentParser(
         description=(
-            "두 개의 VASP OUTCAR에서 계산 결과/iteration 로그를 제외하고, "
+            "두 개의 VASP Could not parse from OUTCAR 계산 결과/iteration 로그를 제외하고, "
             "실제 계산 설정 / 재시작·출력 설정 / POTCAR·시스템 메타데이터 / 결과·이력 항목으로 나누어 비교합니다."
         )
     )
@@ -468,7 +472,7 @@ def main():
     parser.add_argument(
         "--show-count",
         action="store_true",
-        help="수집된 키 개수 출력"
+        help="collected 키 개수 출력"
     )
     args = parser.parse_args()
 
@@ -476,44 +480,44 @@ def main():
     d2 = parse_outcar(args.outcar2)
 
     if args.show_count:
-        print(f"[정보] OUTCAR1 수집 키 수: {len(d1)}")
-        print(f"[정보] OUTCAR2 수집 키 수: {len(d2)}")
+        print(f"[Info] OUTCAR1 수집 키 수: {len(d1)}")
+        print(f"[Info] OUTCAR2 수집 키 수: {len(d2)}")
 
     key_w = max([24] + [len(k) for k in set(list(d1.keys()) + list(d2.keys()))])
 
     # 1) 실제 계산 설정
     diff_a, only1_a, only2_a = compare_category(d1, d2, "actual")
-    print_diff_table("실제 계산 설정 차이", diff_a, key_w)
+    print_diff_table("Differences in actual calculation settings", diff_a, key_w)
     print_single_table("OUTCAR1에만 있는 실제 계산 설정", only1_a, key_w)
     print_single_table("OUTCAR2에만 있는 실제 계산 설정", only2_a, key_w)
 
     # 2) 재시작/출력 설정
     diff_r, only1_r, only2_r = compare_category(d1, d2, "restart_output")
-    print_diff_table("재시작/출력 설정 차이", diff_r, key_w)
+    print_diff_table("Differences in restart/output settings", diff_r, key_w)
     print_single_table("OUTCAR1에만 있는 재시작/출력 설정", only1_r, key_w)
     print_single_table("OUTCAR2에만 있는 재시작/출력 설정", only2_r, key_w)
 
     # 3) POTCAR/시스템 메타데이터
     diff_p, only1_p, only2_p = compare_category(d1, d2, "potcar_system")
-    print_diff_table("POTCAR/시스템 메타데이터 차이", diff_p, key_w)
+    print_diff_table("Differences in POTCAR/system metadata", diff_p, key_w)
     print_single_table("OUTCAR1에만 있는 POTCAR/시스템 메타데이터", only1_p, key_w)
     print_single_table("OUTCAR2에만 있는 POTCAR/시스템 메타데이터", only2_p, key_w)
 
     # 4) unknown stable
     diff_u, only1_u, only2_u = compare_unknown_stable(d1, d2)
-    print_diff_table("기타 안정 항목 차이(분류 미지정)", diff_u, key_w)
+    print_diff_table("Differences in other stable fields (unclassified)", diff_u, key_w)
     print_single_table("OUTCAR1에만 있는 기타 안정 항목", only1_u, key_w)
     print_single_table("OUTCAR2에만 있는 기타 안정 항목", only2_u, key_w)
 
     # 5) 결과/이력 항목은 요청 시만
     if args.show_history:
         diff_h, only1_h, only2_h = compare_category(d1, d2, "result_history")
-        print_diff_table("결과/이력 항목 요약(참고용)", diff_h, key_w)
+        print_diff_table("Summary of result/history fields (reference)", diff_h, key_w)
         print_single_table("OUTCAR1에만 있는 결과/이력 항목", only1_h, key_w)
         print_single_table("OUTCAR2에만 있는 결과/이력 항목", only2_h, key_w)
 
         diff_ud = compare_unknown_dynamic(d1, d2)
-        print_diff_table("기타 동적 항목 요약(분류 미지정)", diff_ud, key_w)
+        print_diff_table("Summary of other dynamic fields (unclassified)", diff_ud, key_w)
 
 
 if __name__ == "__main__":

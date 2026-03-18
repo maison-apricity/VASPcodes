@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# GitHub backup copy
+# Original file: VASP_selectiveID_pos2xdat.py
+# Suggested English filename: vasp_xdatcar_sd_to_extxyz.py
+
 """
 Convert a VASP XDATCAR trajectory into a multi-frame Extended XYZ file,
 using the Selective Dynamics flags stored in one POSCAR/CONTCAR file.

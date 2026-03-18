@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# GitHub backup copy
+# Original file: VASP_masscenter.py
+# Suggested English filename: vasp_center_of_mass.py
+
 from pymatgen.core import Structure
 import numpy as np
 

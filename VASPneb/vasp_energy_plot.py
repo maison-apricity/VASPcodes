@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# GitHub backup copy
+# Original file: VASP_energyPlot.py
+# Suggested English filename: vasp_neb_energy_plot.py
+
 import argparse
 import os
 import re
@@ -31,7 +35,7 @@ def _exists_image_dir_any_pad(base: Path, idx: int) -> bool:
 
 def _interpret_nimages(base: Path, start: int, nimages_input: int, mode: str) -> Tuple[int, str]:
     if nimages_input <= 0:
-        raise ValueError("nimages는 양의 정수여야 합니다.")
+        raise ValueError("nimages는 must be a positive integer.")
 
     mode = (mode or "auto").lower()
     if mode not in ("auto", "total", "neb"):
@@ -100,7 +104,7 @@ def _energy_key_from_dict(d: Dict[str, Any], prefer: Optional[str] = None) -> st
         if "TOTEN" in k:
             return k
 
-    raise KeyError(f"에너지 key를 자동으로 찾지 못했습니다.\n가능한 key: {list(d.keys())}")
+    raise KeyError(f"Could not automatically detect the energy key.\nAvailable keys: {list(d.keys())}")
 
 
 # ---------------- OUTCAR / OSZICAR parsers ----------------
@@ -158,9 +162,9 @@ def _read_last_toten_from_outcar(
     if style == "double":
         if last_double is None:
             raise ValueError(
-                "OUTCAR에서 'free␠␠energy ... TOTEN =' (free 뒤 공백 2개) 패턴을 찾지 못했습니다.\n"
+                "Could not parse from OUTCAR 'free␠␠energy ... TOTEN =' (free 뒤 공백 2개) pattern not found.\n"
                 f"파일: {outcar_path}\n"
-                "필요하면 --outcar-toten-style prefer_double 또는 any를 사용하십시오."
+                "필요하면 --outcar-toten-style prefer_double 또는 any를 사용please."
             )
         return last_double, "OUTCAR_TOTEN[double-space after 'free']"
 
@@ -169,11 +173,11 @@ def _read_last_toten_from_outcar(
             return last_double, "OUTCAR_TOTEN[double-space after 'free']"
         if last_any is not None:
             return last_any, "OUTCAR_TOTEN[any-spacing fallback]"
-        raise ValueError(f"OUTCAR에서 TOTEN 패턴을 찾지 못했습니다: {outcar_path}")
+        raise ValueError(f"Could not parse from OUTCAR TOTEN pattern not found: {outcar_path}")
 
     # style == "any"
     if last_any is None:
-        raise ValueError(f"OUTCAR에서 TOTEN 패턴을 찾지 못했습니다: {outcar_path}")
+        raise ValueError(f"Could not parse from OUTCAR TOTEN pattern not found: {outcar_path}")
     return last_any, "OUTCAR_TOTEN[any-spacing]"
 
 
@@ -189,7 +193,7 @@ def _read_last_e0_from_oszicar(oszicar_path: Path) -> float:
                 last_val = float(m.group(1))
 
     if last_val is None:
-        raise ValueError(f"OSZICAR에서 E0 패턴을 찾지 못했습니다: {oszicar_path}")
+        raise ValueError(f"OSZICAR에서 E0 pattern not found: {oszicar_path}")
 
     return last_val
 
@@ -277,12 +281,12 @@ def _read_positions_any(d: Path, *, contcar_name: str, poscar_name: str) -> Tupl
         pos = np.asarray(atoms.get_positions(), dtype=float)
         return pos, f"ASE[{poscar_name}]"
 
-    raise FileNotFoundError(f"구조 파일을 찾지 못했습니다: {contcar_name} / {poscar_name} (dir={d})")
+    raise FileNotFoundError(f"Could not find structure files: {contcar_name} / {poscar_name} (dir={d})")
 
 
 def _normalize_atom_index(idx: int, natoms: int) -> int:
     if natoms <= 0:
-        raise ValueError("natoms가 0 이하입니다.")
+        raise ValueError("natoms가 0 이하is.")
     if idx < 0:
         idx = natoms + idx
     if idx < 0 or idx >= natoms:
@@ -310,7 +314,7 @@ def _ask_yes_no(prompt: str, default: bool = False) -> bool:
             return True
         if ans in ("n", "no"):
             return False
-        print("  입력 오류: y 또는 n 으로 입력해주십시오.")
+        print("  Input error: y 또는 n 으로 입력해주십시오.")
 
 
 def _ask_int(prompt: str, default: Optional[int] = None) -> int:
@@ -324,7 +328,7 @@ def _ask_int(prompt: str, default: Optional[int] = None) -> int:
         try:
             return int(ans)
         except ValueError:
-            print("  입력 오류: 정수로 입력해주십시오.")
+            print("  Input error: Please enter an integer.")
 
 def _compute_relative_energies(energies_abs: List[float]) -> Tuple[List[float], List[float], float, float]:
     """
@@ -335,7 +339,7 @@ def _compute_relative_energies(energies_abs: List[float]) -> Tuple[List[float], 
       - e0       : first E
     """
     if not energies_abs:
-        raise ValueError("energies_abs가 비어 있습니다.")
+        raise ValueError("energies_abs가 비어 exists.")
     emin = float(min(energies_abs))
     e0 = float(energies_abs[0])
     rel_min = [float(e) - emin for e in energies_abs]
@@ -405,7 +409,7 @@ def _write_raw_txt(
     prec_e: int = 10,
 ) -> None:
     """
-    사람이 바로 읽을 수 있는 .txt raw dump를 저장합니다.
+    사람이 바로 읽을 수 있는 .txt raw dump를 saved합니다.
     - 상단에 메타데이터(실행 조건/폴더 범위 등)
     - 하단에 고정폭 테이블
     """
@@ -442,7 +446,7 @@ def _write_raw_txt(
                 f"{rel_first[k]:>{w_re}.{prec_e}f}  "
                 f"{sources[k]}\n"
             )
-    print(f"[OK] TXT raw dump 저장: {out_path}")
+    print(f"[OK] TXT raw dump saved: {out_path}")
 
 
 def _write_csv_extended(
@@ -459,7 +463,7 @@ def _write_csv_extended(
         f.write("image,x,E_abs_eV,E_rel_min_eV,E_rel_first_eV,source\n")
         for lab, x, ea, rm, rf, src in zip(labels, xs, energies_abs, rel_min, rel_first, sources):
             f.write(f"{lab},{x:.10f},{ea:.10f},{rm:.10f},{rf:.10f},{src}\n")
-    print(f"[OK] CSV(extended) 저장: {out_csv}")
+    print(f"[OK] CSV(extended) saved: {out_csv}")
 
 
 def parse_args() -> argparse.Namespace:
@@ -488,11 +492,11 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--title", type=str, default=None)
 
     ap.add_argument("--no-raw-table", action="store_true",
-                    help="수집된 (x, E) 로우 데이터를 터미널 테이블로 출력하지 않습니다.")
+                    help="collected (x, E) raw data를 터미널 테이블로 출력하지 않습니다.")
     ap.add_argument("--output-txt", type=str, default=None,
-                    help="로우 데이터 테이블을 사람이 읽기 쉬운 TXT로 저장합니다.")
+                    help="raw data 테이블을 사람이 읽기 쉬운 TXT로 saved합니다.")
     ap.add_argument("--output-csv-extended", type=str, default=None,
-                    help="E_rel_min, E_rel_first 컬럼까지 포함한 확장 CSV를 저장합니다.")
+                    help="E_rel_min, E_rel_first 컬럼까지 포함한 확장 CSV를 saved합니다.")
     ap.add_argument("--no-plot", action="store_true",
                     help="Plotly 창(fig.show)을 띄우지 않습니다(SSH/헤드리스 환경용). save-html은 가능.")
 
@@ -513,7 +517,7 @@ def parse_args() -> argparse.Namespace:
         default="double",
         choices=["double", "prefer_double", "any"],
         help=(
-            "OUTCAR에서 TOTEN 추출 시 공백 패턴 선택. "
+            "Could not parse from OUTCAR TOTEN 추출 시 공백 패턴 선택. "
             "'double'은 free 뒤 공백 2개('free␠␠energy ... TOTEN=')만 허용(없으면 에러). "
             "'prefer_double'은 있으면 double, 없으면 any로 fallback. "
             "'any'는 기존처럼 공백 무관."
@@ -530,14 +534,14 @@ def parse_args() -> argparse.Namespace:
 def interactive_fill(args: argparse.Namespace) -> argparse.Namespace:
     # 0) path/nimages는 항상 필요
     if args.path is None:
-        p = input("NEB 상위 폴더 경로를 입력하십시오 (드래그&드롭 가능): ").strip()
+        p = input("Enter the NEB parent directory path (drag-and-drop supported): ").strip()
         args.path = _clean_dragdrop_path(p)
     else:
         args.path = _clean_dragdrop_path(args.path)
 
     if args.nimages is None:
         args.nimages = _ask_int(
-            "nimages 입력값을 입력하십시오 (auto에서는 IMAGES(중간)일 수도, total(총 폴더 수)일 수도 있습니다)",
+            "nimages 입력값을 입력please (auto에서는 IMAGES(중간)일 수도, total(총 폴더 수)일 수도 exists)",
             default=None
         )
 
@@ -548,7 +552,7 @@ def interactive_fill(args: argparse.Namespace) -> argparse.Namespace:
 
     # 2) atom 모드면 원자 번호 질문(없으면)
     if args.x_mode == "atom" and args.moving_atom is None:
-        args.moving_atom = _ask_int("이동거리를 계산할 원자 인덱스를 입력하십시오 (0-based, -1은 마지막 원자)", default=-1)
+        args.moving_atom = _ask_int("Enter the atom index used to compute the displacement (0-based, -1은 마지막 원자)", default=-1)
 
     return args
 
@@ -661,7 +665,7 @@ def main():
             raise
 
     if not xs:
-        raise RuntimeError("유효한 데이터를 하나도 읽지 못했습니다. OUTCAR/OSZICAR 또는 구조 파일 존재 여부를 확인하십시오.")
+        raise RuntimeError("유효한 데이터를 하나도 읽지 못했습니다. OUTCAR/OSZICAR 또는 구조 파일 존재 여부를 확인please.")
 
     if args.sort_by_x:
         order = np.argsort(np.array(xs))
@@ -709,7 +713,7 @@ def main():
             f.write("image,x,E_abs_eV,source\n")
             for lab, x, ea, src in zip(labels, xs, energies_abs, sources):
                 f.write(f"{lab},{x:.10f},{ea:.10f},{src}\n")
-        print(f"[OK] CSV 저장: {out_csv}")
+        print(f"[OK] CSV saved: {out_csv}")
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -738,7 +742,7 @@ def main():
     if args.save_html:
         out_html = Path(args.save_html).resolve()
         fig.write_html(str(out_html))
-        print(f"[OK] HTML 저장: {out_html}")
+        print(f"[OK] HTML saved: {out_html}")
 
     if (not args.no_plot) or args.save_html:
         fig = go.Figure()
@@ -768,7 +772,7 @@ def main():
         if args.save_html:
             out_html = Path(args.save_html).resolve()
             fig.write_html(str(out_html))
-            print(f"[OK] HTML 저장: {out_html}")
+            print(f"[OK] HTML saved: {out_html}")
 
         if not args.no_plot:
             fig.show()

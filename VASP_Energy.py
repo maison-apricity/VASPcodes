@@ -1,17 +1,24 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# GitHub backup copy
+# Original file: VASP_energy.py
+# Suggested English filename: vasp_energy_inspector.py
+
 import py4vasp
 import matplotlib.pyplot as plt
 import numpy as np
 
-# 파일 경로
+# File path
 file_path = r"C:\Users\dlstj\Desktop\Choi\vaspout.h5"
 
-# 데이터 로딩
+# Load data
 data = py4vasp.Calculation.from_file(file_path)
 
-# 1. 에너지 추출
+# 1. Extract energy
 energy_raw = data.energy
 
-# 2. to_dict(): 단일 snapshot
+# 2. to_dict(): Single snapshot
 try:
     energy_dict = energy_raw.to_dict()
     print("\n▶ to_dict() 출력:")
@@ -20,7 +27,7 @@ try:
 except Exception as e:
     print("to_dict() 실패:", e)
 
-# 3. to_numpy(): 전체 step 확인
+# 3. to_numpy(): Inspect all steps
 try:
     energy_np = energy_raw.to_numpy()
     print("\n▶ to_numpy() 출력:")
@@ -28,18 +35,18 @@ try:
     print("value:", energy_np)
     print("shape:", getattr(energy_np, 'shape', 'shape 없음'))
 
-    # 경우 분기
+    # Case handling
     if isinstance(energy_np, np.ndarray):
         if energy_np.ndim == 2:
             print("✅ 2차원 배열 → step별 에너지 존재")
-            print("총 step 수:", energy_np.shape[0])
-            print("에너지 종류 수:", energy_np.shape[1])
+            print("Total number of steps:", energy_np.shape[0])
+            print("Number of energy entries:", energy_np.shape[1])
         elif energy_np.ndim == 1:
-            print("⚠ 단일 ionic step만 포함됨 (1차원)")
+            print("⚠ Only a single ionic step is present (1차원)")
         elif energy_np.ndim == 0:
-            print("⚠ 단일 에너지 값만 포함됨 (스칼라)")
+            print("⚠ Only a single scalar energy value is present (스칼라)")
     else:
-        print("⚠ 반환값이 배열이 아님:", energy_np)
+        print("⚠ Return value is not an array:", energy_np)
 
 except Exception as e:
     print("to_numpy() 실패:", e)

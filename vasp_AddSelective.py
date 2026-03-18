@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# GitHub backup copy
+# Original file: VASP_POSCAR_selective.py
+# Suggested English filename: vasp_poscar_selective_flags.py
+
 from pathlib import Path
 
 # =========================
-# 사용자 설정
+# User settings
 # =========================
 INPUT_POSCAR = r"./POSCAR"
 OUTPUT_POSCAR = r"./POSCAR_modified"
 
-# zero-based atom indices
+# Zero-based atom indices
 TARGET_INDICES = {
     176, 181, 182, 183
 }
@@ -27,7 +31,7 @@ def is_integer_line(tokens):
 def main():
     lines = Path(INPUT_POSCAR).read_text(encoding="utf-8").splitlines()
     if len(lines) < 8:
-        raise ValueError("POSCAR 형식이 너무 짧습니다.")
+        raise ValueError("POSCAR format appears too short.")
 
     # POSCAR header
     comment = lines[0]
@@ -36,7 +40,7 @@ def main():
 
     idx = 5
 
-    # VASP 5 여부 판별
+    # Detect whether the file uses VASP 5 style
     tokens = lines[idx].split()
     if is_integer_line(tokens):
         # VASP 4 style: counts only
@@ -62,25 +66,25 @@ def main():
 
     # Coordinate mode
     if idx >= len(lines):
-        raise ValueError("좌표 모드 줄(Direct/Cartesian)을 찾을 수 없습니다.")
+        raise ValueError("Could not find the coordinate mode line (Direct/Cartesian).")
     coord_mode = lines[idx]
     idx += 1
 
     coord_mode_lower = coord_mode.strip().lower()
     if not (coord_mode_lower.startswith("d") or coord_mode_lower.startswith("c") or coord_mode_lower.startswith("k")):
-        raise ValueError(f"좌표 모드가 이상합니다: {coord_mode}")
+        raise ValueError(f"Unexpected coordinate mode: {coord_mode}")
 
     # Coordinate lines
     coord_lines = lines[idx:idx + natoms]
     if len(coord_lines) != natoms:
-        raise ValueError(f"원자 수({natoms})와 좌표 줄 수({len(coord_lines)})가 맞지 않습니다.")
+        raise ValueError(f"Number of atoms({natoms})와 Number of coordinate lines({len(coord_lines)})가 맞지 않습니다.")
 
     max_index = natoms - 1
     bad = sorted(i for i in TARGET_INDICES if i < 0 or i > max_index)
     if bad:
         raise IndexError(
-            f"유효 범위를 벗어난 zero-based 인덱스가 있습니다. "
-            f"허용 범위: 0 ~ {max_index}, 문제 인덱스: {bad[:20]}"
+            f"Some zero-based indices are out of the valid range. "
+            f"Allowed range: 0 ~ {max_index}, Problematic indices: {bad[:20]}"
             + (" ..." if len(bad) > 20 else "")
         )
 
@@ -92,7 +96,7 @@ def main():
 
         xyz = parts[:3]
 
-        # 기존 SD가 있으면 기존 flags는 버리고, 뒤에 남는 주석류만 보존
+        # If SD flags already exist, replace them and keep only trailing annotations.
         if selective_present:
             tail = parts[6:] if len(parts) >= 6 else []
         else:
@@ -117,12 +121,12 @@ def main():
 
     Path(OUTPUT_POSCAR).write_text("\n".join(out) + "\n", encoding="utf-8")
 
-    print(f"[완료] 입력 파일 : {INPUT_POSCAR}")
-    print(f"[완료] 출력 파일 : {OUTPUT_POSCAR}")
-    print(f"[정보] 전체 원자 수 : {natoms}")
-    print(f"[정보] T T T 원자 수 : {len(TARGET_INDICES)}")
-    print(f"[정보] F F F 원자 수 : {natoms - len(TARGET_INDICES)}")
-    print(f"[정보] zero-based 최대 인덱스 : {max_index}")
+    print(f"[Done] Input file : {INPUT_POSCAR}")
+    print(f"[Done] Output file : {OUTPUT_POSCAR}")
+    print(f"[Info] Total number of atoms : {natoms}")
+    print(f"[Info] T T T Number of atoms : {len(TARGET_INDICES)}")
+    print(f"[Info] F F F Number of atoms : {natoms - len(TARGET_INDICES)}")
+    print(f"[Info] zero-based 최대 인덱스 : {max_index}")
 
 
 if __name__ == "__main__":
