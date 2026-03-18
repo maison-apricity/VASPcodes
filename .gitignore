@@ -1,0 +1,11 @@
+VASPneb/VTSTscripts/
+.vscode/
+*/.vscode/
+VASPscripts/
+OUTCAR*
+POSCAR*
+CONTCAR*
+XDATCAR*
+POTCAR*
+WAVECAR*
+*/__pycache__/
