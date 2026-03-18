@@ -14,7 +14,7 @@ venv/
 *.svg
 *.log
 */VTSTscripts
-VASPsctipts/
+VASPscripts/
 */.vscode/
 .vscode/
 backup/
