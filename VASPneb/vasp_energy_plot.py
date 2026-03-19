@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# GitHub backup copy
-# Original file: VASP_energyPlot.py
-# Suggested English filename: vasp_neb_energy_plot.py
-
 import argparse
 import os
 import re
@@ -22,7 +18,7 @@ def _clean_dragdrop_path(s: str) -> str:
     if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
         s = s[1:-1]
     s = os.path.expanduser(s)
-    return s.rstrip("/\\")  # 마지막 슬래시 제거
+    return s.rstrip("/\\")  # Remove a trailing slash
 
 
 def _exists_image_dir_any_pad(base: Path, idx: int) -> bool:
@@ -35,11 +31,11 @@ def _exists_image_dir_any_pad(base: Path, idx: int) -> bool:
 
 def _interpret_nimages(base: Path, start: int, nimages_input: int, mode: str) -> Tuple[int, str]:
     if nimages_input <= 0:
-        raise ValueError("nimages는 must be a positive integer.")
+        raise ValueError("nimages must be a positive integer.")
 
     mode = (mode or "auto").lower()
     if mode not in ("auto", "total", "neb"):
-        raise ValueError(f"count-mode는 auto/total/neb 중 하나여야 합니다: {mode}")
+        raise ValueError(f"count-mode must be one of auto/total/neb: {mode}")
 
     if mode == "total":
         return nimages_input, "total(forced)"
@@ -109,8 +105,8 @@ def _energy_key_from_dict(d: Dict[str, Any], prefer: Optional[str] = None) -> st
 
 # ---------------- OUTCAR / OSZICAR parsers ----------------
 # NOTE:
-#  - "free␠␠energy ... TOTEN =" (free 뒤 공백 2개)만 잡고 싶다면 DOUBLE 패턴 사용
-#  - 기존처럼 공백 무관으로 잡고 싶다면 ANY 패턴 사용
+#  - Use the DOUBLE pattern if you want to match only "free␠␠energy ... TOTEN =" (two spaces after free)
+#  - Use the ANY pattern if you want whitespace-insensitive matching
 
 _OUTCAR_TOTEN_RE_DOUBLE = re.compile(
     r"^\s*free {2}energy\s+TOTEN\s*=\s*([-\d\.Ee+]+)",
@@ -131,9 +127,9 @@ def _read_last_toten_from_outcar(
 ) -> Tuple[float, str]:
     """
     style:
-      - "double": 반드시 'free␠␠energy ... TOTEN =' 만 사용 (없으면 에러)
-      - "prefer_double": double이 있으면 그것, 없으면 any로 fallback
-      - "any": 'free\\s+energy\\s+TOTEN' 모든 변형 허용
+      - "double": strictly 'free␠␠energy ... TOTEN =' only (raise an error if not found)
+      - "prefer_double": use the double-space form if it exists, otherwise fall back to any
+      - "any": 'free\\s+energy\\s+TOTEN' allow any spacing variant
     return: (E, tag) where tag describes which pattern was used.
     """
     if not outcar_path.is_file():
@@ -141,7 +137,7 @@ def _read_last_toten_from_outcar(
 
     style = (style or "double").lower()
     if style not in ("double", "prefer_double", "any"):
-        raise ValueError(f"outcar toten style은 double/prefer_double/any 중 하나여야 합니다: {style}")
+        raise ValueError(f"outcar toten style must be one of double/prefer_double/any: {style}")
 
     last_double: Optional[float] = None
     last_any: Optional[float] = None
@@ -151,7 +147,7 @@ def _read_last_toten_from_outcar(
             m2 = _OUTCAR_TOTEN_RE_DOUBLE.search(line)
             if m2:
                 last_double = float(m2.group(1))
-                # DOUBLE은 ANY에도 포함될 수 있으므로 같이 업데이트해도 무방합니다.
+                # DOUBLE also matches the ANY pattern, so updating both here is harmless.
                 last_any = last_double
                 continue
 
@@ -162,9 +158,9 @@ def _read_last_toten_from_outcar(
     if style == "double":
         if last_double is None:
             raise ValueError(
-                "Could not parse from OUTCAR 'free␠␠energy ... TOTEN =' (free 뒤 공백 2개) pattern not found.\n"
-                f"파일: {outcar_path}\n"
-                "필요하면 --outcar-toten-style prefer_double 또는 any를 사용please."
+                "Could not parse from OUTCAR 'free␠␠energy ... TOTEN =' (two spaces after free) pattern not found.\n"
+                f"File: {outcar_path}\n"
+                "Use --outcar-toten-style prefer_double or any if needed."
             )
         return last_double, "OUTCAR_TOTEN[double-space after 'free']"
 
@@ -193,7 +189,7 @@ def _read_last_e0_from_oszicar(oszicar_path: Path) -> float:
                 last_val = float(m.group(1))
 
     if last_val is None:
-        raise ValueError(f"OSZICAR에서 E0 pattern not found: {oszicar_path}")
+        raise ValueError(f"Could not parse E0 pattern from OSZICAR: {oszicar_path}")
 
     return last_val
 
@@ -262,7 +258,7 @@ def _read_positions_any(d: Path, *, contcar_name: str, poscar_name: str) -> Tupl
         calc = py4vasp.Calculation.from_path(str(d))
         pos = np.asarray(calc.structure.cartesian_positions(), dtype=float)
         if pos.ndim != 2 or pos.shape[1] != 3:
-            raise ValueError(f"cartesian_positions shape가 예상과 다릅니다: {pos.shape}")
+            raise ValueError(f"Unexpected cartesian_positions shape: {pos.shape}")
         return pos, "py4vasp[structure]"
     except Exception:
         pass
@@ -286,11 +282,11 @@ def _read_positions_any(d: Path, *, contcar_name: str, poscar_name: str) -> Tupl
 
 def _normalize_atom_index(idx: int, natoms: int) -> int:
     if natoms <= 0:
-        raise ValueError("natoms가 0 이하is.")
+        raise ValueError("natoms must be greater than 0.")
     if idx < 0:
         idx = natoms + idx
     if idx < 0 or idx >= natoms:
-        raise IndexError(f"moving-atom 인덱스 범위 오류: 0..{natoms-1} 또는 음수(-1..-{natoms}) 범위여야 합니다.")
+        raise IndexError(f"moving-atom index is out of range. Valid range: 0..{natoms-1} or negative indices -1..-{natoms}.")
     return idx
 
 
@@ -298,8 +294,8 @@ def _normalize_atom_index(idx: int, natoms: int) -> int:
 
 def _ask_yes_no(prompt: str, default: bool = False) -> bool:
     """
-    default=False -> 엔터는 No
-    default=True  -> 엔터는 Yes
+    default=False -> Enter means No
+    default=True  -> Enter means Yes
     """
     if default:
         suffix = " [Y/n]: "
@@ -314,7 +310,7 @@ def _ask_yes_no(prompt: str, default: bool = False) -> bool:
             return True
         if ans in ("n", "no"):
             return False
-        print("  Input error: y 또는 n 으로 입력해주십시오.")
+        print("  Input error: please enter y or n.")
 
 
 def _ask_int(prompt: str, default: Optional[int] = None) -> int:
@@ -339,7 +335,7 @@ def _compute_relative_energies(energies_abs: List[float]) -> Tuple[List[float], 
       - e0       : first E
     """
     if not energies_abs:
-        raise ValueError("energies_abs가 비어 exists.")
+        raise ValueError("energies_abs is empty.")
     emin = float(min(energies_abs))
     e0 = float(energies_abs[0])
     rel_min = [float(e) - emin for e in energies_abs]
@@ -363,10 +359,10 @@ def _print_raw_table(
     prec_x: int = 6,
     prec_e: int = 10,
 ) -> None:
-    """터미널에서 바로 확인 가능한 고정폭(raw) 테이블을 출력합니다."""
+    """Print a fixed-width raw data table that can be checked directly in the terminal."""
     n = len(labels)
     if not (len(xs) == len(energies_abs) == len(rel_min) == len(rel_first) == len(sources) == n):
-        raise ValueError("raw table 입력 리스트들의 길이가 서로 다릅니다.")
+        raise ValueError("Input lists for the raw table have different lengths.")
 
     # column widths
     w_i = max(3, len(str(n - 1)))
@@ -409,9 +405,9 @@ def _write_raw_txt(
     prec_e: int = 10,
 ) -> None:
     """
-    사람이 바로 읽을 수 있는 .txt raw dump를 saved합니다.
-    - 상단에 메타데이터(실행 조건/폴더 범위 등)
-    - 하단에 고정폭 테이블
+    Save a human-readable raw-data dump as a TXT file.
+    - Metadata at the top (run configuration, folder range, and related settings)
+    - Fixed-width table below
     """
     out_path = out_path.resolve()
     with out_path.open("w", encoding="utf-8") as f:
@@ -481,24 +477,24 @@ def parse_args() -> argparse.Namespace:
 
     # x-axis (non-interactive override)
     ap.add_argument("--x-mode", type=str, default=None, choices=["index", "atom"],
-                    help="비대화형 실행 시 x축 모드 강제: index(이미지), atom(원자 이동거리). 미지정이면 대화형 질문.")
+                    help="Force the x-axis mode in non-interactive runs: index (image index) or atom (moving-atom displacement). If omitted, the script asks interactively.")
     ap.add_argument("--moving-atom", type=int, default=None,
-                    help="x-mode=atom일 때 사용할 원자 인덱스(0-based, -1 허용). 미지정이면 대화형으로 질문.")
+                    help="Atom index to use when x-mode=atom (0-based, -1 allowed). If omitted, the script asks interactively.")
 
     ap.add_argument("--sort-by-x", action="store_true",
-                    help="x값 기준으로 정렬(기본은 이미지 순서대로). index 모드에서는 의미 거의 없음.")
+                    help="Sort by x value (default is image order). This has little meaning in index mode.")
     ap.add_argument("--save-html", type=str, default=None)
     ap.add_argument("--output-csv", type=str, default=None)
     ap.add_argument("--title", type=str, default=None)
 
     ap.add_argument("--no-raw-table", action="store_true",
-                    help="collected (x, E) raw data를 터미널 테이블로 출력하지 않습니다.")
+                    help="Do not print the collected raw (x, E) data table in the terminal.")
     ap.add_argument("--output-txt", type=str, default=None,
-                    help="raw data 테이블을 사람이 읽기 쉬운 TXT로 saved합니다.")
+                    help="Save the raw data table as a human-readable TXT file.")
     ap.add_argument("--output-csv-extended", type=str, default=None,
-                    help="E_rel_min, E_rel_first 컬럼까지 포함한 확장 CSV를 saved합니다.")
+                    help="Save an extended CSV including E_rel_min and E_rel_first columns.")
     ap.add_argument("--no-plot", action="store_true",
-                    help="Plotly 창(fig.show)을 띄우지 않습니다(SSH/헤드리스 환경용). save-html은 가능.")
+                    help="Do not open the Plotly window (fig.show), which is useful for SSH or headless environments. HTML export is still available.")
 
     ap.add_argument("--skip-missing", action="store_true")
     ap.add_argument("--verbose", action="store_true")
@@ -517,10 +513,10 @@ def parse_args() -> argparse.Namespace:
         default="double",
         choices=["double", "prefer_double", "any"],
         help=(
-            "Could not parse from OUTCAR TOTEN 추출 시 공백 패턴 선택. "
-            "'double'은 free 뒤 공백 2개('free␠␠energy ... TOTEN=')만 허용(없으면 에러). "
-            "'prefer_double'은 있으면 double, 없으면 any로 fallback. "
-            "'any'는 기존처럼 공백 무관."
+            "Choose the whitespace-matching rule used when parsing TOTEN from OUTCAR. "
+            "'double' accepts only the form with two spaces after 'free' ('free␠␠energy ... TOTEN='), and raises an error if not found. "
+            "'prefer_double' uses the double-space form if available, otherwise falls back to any. "
+            "'any' ignores spacing differences, as in the legacy behavior."
         )
     )
 
@@ -532,7 +528,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def interactive_fill(args: argparse.Namespace) -> argparse.Namespace:
-    # 0) path/nimages는 항상 필요
+    # 0) path/nimages are always required
     if args.path is None:
         p = input("Enter the NEB parent directory path (drag-and-drop supported): ").strip()
         args.path = _clean_dragdrop_path(p)
@@ -541,18 +537,18 @@ def interactive_fill(args: argparse.Namespace) -> argparse.Namespace:
 
     if args.nimages is None:
         args.nimages = _ask_int(
-            "nimages 입력값을 입력please (auto에서는 IMAGES(중간)일 수도, total(총 폴더 수)일 수도 exists)",
+            "Enter the nimages input value (in auto mode, this may represent either VASP IMAGES, i.e. intermediate images, or the total number of folders)",
             default=None
         )
 
-    # 1) x축 모드 결정(요청하신 3-step 로직)
+    # 1) Determine the x-axis mode (requested 3-step logic)
     if args.x_mode is None:
-        use_atom = _ask_yes_no("x축을 원자의 상대적 이동거리(초기 이미지 대비)로 사용하시겠습니까?", default=False)
+        use_atom = _ask_yes_no("Do you want to use the relative displacement of a moving atom (with respect to the initial image) as the x-axis?", default=False)
         args.x_mode = "atom" if use_atom else "index"
 
-    # 2) atom 모드면 원자 번호 질문(없으면)
+    # 2) If atom mode is used, ask for the atom index when it is missing
     if args.x_mode == "atom" and args.moving_atom is None:
-        args.moving_atom = _ask_int("Enter the atom index used to compute the displacement (0-based, -1은 마지막 원자)", default=-1)
+        args.moving_atom = _ask_int("Enter the atom index used to compute the displacement (0-based, -1 means the last atom)", default=-1)
 
     return args
 
@@ -574,7 +570,7 @@ def main():
 
     base = Path(args.path).resolve()
     if not base.is_dir():
-        raise FileNotFoundError(f"NEB 상위 폴더를 찾을 수 없습니다: {base}")
+        raise FileNotFoundError(f"Could not find the NEB parent directory: {base}")
 
     total_nimages, used_mode = _interpret_nimages(base, args.start, args.nimages, args.count_mode)
 
@@ -582,7 +578,7 @@ def main():
         inferred = _infer_existing_pad(base, args.start, total_nimages)
         args.pad = inferred if inferred is not None else 2
 
-    # collected
+    # collected data
     xs: List[float] = []
     energies_abs: List[float] = []
     labels: List[str] = []
@@ -599,14 +595,14 @@ def main():
 
     x_mode = args.x_mode  # "index" or "atom"
     if x_mode not in ("index", "atom"):
-        raise ValueError(f"x_mode 오류: {x_mode}")
+        raise ValueError(f"Invalid x_mode: {x_mode}")
 
     for i in range(args.start, args.start + total_nimages):
         d = _resolve_image_dir(base, i, args.pad)
-        label = d.name  # 보통 "00","01",...
+        label = d.name  # usually "00", "01", ...
 
         if not d.is_dir():
-            msg = f"[{label}] 이미지 폴더 없음: {d}"
+            msg = f"[{label}] Missing image directory: {d}"
             if args.skip_missing:
                 failures.append(msg)
                 continue
@@ -638,7 +634,7 @@ def main():
                 natoms = pos.shape[0]
                 if moving_atom_resolved is None:
                     if args.moving_atom is None:
-                        raise ValueError("x_mode=atom인데 moving_atom이 설정되지 않았습니다.")
+                        raise ValueError("x_mode=atom but moving_atom was not set.")
                     moving_atom_resolved = _normalize_atom_index(args.moving_atom, natoms)
 
                 r = pos[moving_atom_resolved]
@@ -658,14 +654,14 @@ def main():
                 print(f"[{label}] x={x:.6f}  E_abs={E:.8f} eV  ({sources[-1]}){extra}")
 
         except Exception as e:
-            msg = f"[{label}] 실패: {d}  ({type(e).__name__}: {e})"
+            msg = f"[{label}] failed: {d}  ({type(e).__name__}: {e})"
             if args.skip_missing:
                 failures.append(msg)
                 continue
             raise
 
     if not xs:
-        raise RuntimeError("유효한 데이터를 하나도 읽지 못했습니다. OUTCAR/OSZICAR 또는 구조 파일 존재 여부를 확인please.")
+        raise RuntimeError("No valid data could be read. Check whether OUTCAR/OSZICAR or structure files are present.")
 
     if args.sort_by_x:
         order = np.argsort(np.array(xs))
@@ -680,7 +676,7 @@ def main():
     barrier = float(max(rel_min))  # max(E - Emin)
     end_to_end = float(energies_abs[-1] - energies_abs[0])
 
-    # 확장 CSV / TXT raw dump
+    # Extended CSV / TXT raw dump
     if args.output_csv_extended:
         _write_csv_extended(Path(args.output_csv_extended), labels, xs, energies_abs, rel_min, rel_first, sources)
 
@@ -697,7 +693,7 @@ def main():
         }
         _write_raw_txt(Path(args.output_txt), labels, xs, energies_abs, rel_min, rel_first, sources, meta=meta)
 
-    # 터미널 표 출력(기본 ON, --no-raw-table로 끔)
+    # Print terminal table (enabled by default, disabled with --no-raw-table)
     if not args.no_raw_table:
         _print_raw_table(labels, xs, energies_abs, rel_min, rel_first, sources)
 

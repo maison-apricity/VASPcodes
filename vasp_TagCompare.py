@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# GitHub backup copy
-# Original file: VASP_TagCompare.py
-# Suggested English filename: vasp_outcar_compare.py
-
 import argparse
 import re
 import sys
 from collections import OrderedDict, defaultdict
 
 # ============================================================
-# 0) 완전히 무시할 키/Info
+# 0) Keys/info to ignore completely
 # ============================================================
 IGNORE_KEYS = {
     "COPYR",
@@ -19,7 +15,7 @@ IGNORE_KEYS = {
 }
 
 # ============================================================
-# 1) 결과/iteration 로그 시작 라인 패턴
+# 1) Line patterns marking result/iteration logs
 # ============================================================
 SKIP_LINE_PATTERNS = [
     re.compile(r'^\s*Iteration', re.IGNORECASE),
@@ -40,7 +36,7 @@ SKIP_LINE_PATTERNS = [
 ]
 
 # ============================================================
-# 2) 일반 KEY = VALUE 추출
+# 2) General KEY = VALUE extraction
 # ============================================================
 PAIR_RE = re.compile(
     r'([A-Z][A-Z0-9_()\/+\-]*)\s*=\s*(.*?)(?=(?:\s+[A-Z][A-Z0-9_()\/+\-]*\s*=)|$)'
@@ -51,7 +47,7 @@ NUM_RE = re.compile(
 )
 
 # ============================================================
-# 3) 다단어 key / 특수 라인
+# 3) Multi-word keys / special lines
 # ============================================================
 SPECIAL_PATTERNS = [
     (re.compile(r'^\s*ions per type\s*=\s*(.+)$', re.IGNORECASE), 'IONS_PER_TYPE'),
@@ -61,16 +57,16 @@ SPECIAL_PATTERNS = [
 ]
 
 # ============================================================
-# 4) 카테고리 분류용 키 세트
+# 4) Key sets for category classification
 # ============================================================
 ACTUAL_SETTING_KEYS = {
-    # 기본/정확도/전자
+    # basic / accuracy / electronic settings
     "PREC", "ENCUT", "ENINI", "EDIFF", "EDIFFG", "NELM", "NELMIN", "NELMDL",
     "ALGO", "IALGO", "LREAL", "ADDGRID", "LASPH", "LMAXMIX", "LMAXPAW",
     "ISMEAR", "SIGMA", "AMIX", "BMIX", "AMIX_MAG", "BMIX_MAG", "MAXMIX",
     "WEIMIN", "NELECT", "NBANDS", "NCORE", "NPAR", "KPAR", "NSIM",
     "ISPIN", "MAGMOM", "SAXIS",
-    # 구조 최적화/NEB
+    # structural optimization / NEB
     "IBRION", "NSW", "POTIM", "ISIF", "ISYM",
     "SPRING", "LCLIMB", "IMAGES", "ICHAIN", "IOPT", "LTANGENTOLD",
     # dipole / electrostatics
@@ -78,10 +74,10 @@ ACTUAL_SETTING_KEYS = {
     # vdW / XC / hybrid
     "IVDW", "GGA", "METAGGA", "LUSE_VDW", "ZAB_VDW", "PARAM1", "PARAM2",
     "LHFCALC", "AEXX", "HFSCREEN", "TIME", "PRECFOCK",
-    # 격자/그리드
+    # lattice / grids
     "NGX", "NGY", "NGZ", "NGXF", "NGYF", "NGZF",
     "ENAUG",
-    # 기타 계산 모델
+    # other calculation models
     "LDAU", "LDAUTYPE", "LDAUL", "LDAUU", "LDAUJ", "LDAUPRINT",
     "LSORBIT", "LNONCOLLINEAR", "GGA_COMPAT", "LASYNC",
 }
@@ -94,10 +90,10 @@ RESTART_OUTPUT_KEYS = {
 }
 
 POTCAR_SYSTEM_KEYS = {
-    # POTCAR 관련
+    # POTCAR-related entries
     "TITEL", "VRHFIN", "ZVAL", "POMASS", "ENMAX", "ENMIN",
     "RCORE", "RAUG", "RWIGS", "RMAX", "RDEP", "RDEPT", "RPACOR",
-    # 시스템/구조/격자/점 개수
+    # system / structure / lattice / k-point counts
     "SYSTEM", "NIONS", "NTYP", "IONS_PER_TYPE", "NKPTS", "KPOINTS_GRID",
     "KPOINTS_SHIFT", "DIMENSION_OF_ARRAYS",
     "LATTICE_A", "LATTICE_B", "LATTICE_C", "CELL_VOLUME",
@@ -109,7 +105,7 @@ RESULT_HISTORY_KEYS = {
     "EAUG", "EATOM",
 }
 
-# 여러 토큰을 전부 유지해야 하는 키
+# Keys for which all tokens must be preserved
 FULL_VALUE_KEYS = {
     "DIPOL", "MAGMOM", "SAXIS",
     "LDAUL", "LDAUU", "LDAUJ",
@@ -134,10 +130,10 @@ def normalize_key(key: str) -> str:
 
 
 def strip_annotations(text: str) -> str:
-    # # 이후 제거
+    # Remove everything after #
     text = re.sub(r'#.*$', '', text)
 
-    # 괄호 안 반복 제거
+    # Repeatedly remove parenthesized annotations
     prev = None
     while prev != text:
         prev = text
@@ -178,9 +174,9 @@ def is_numeric_token(tok: str) -> bool:
 
 def core_value(key: str, raw_value: str) -> str:
     """
-    비교용 핵심값.
-    - FULL_VALUE_KEYS는 전체 보존
-    - 일반 키는 첫 토큰만
+    Core value used for comparison.
+    - FULL_VALUE_KEYS preserve the full value
+    - regular keys compare only the first token
     """
     if key in FULL_VALUE_KEYS:
         return raw_value
@@ -189,7 +185,7 @@ def core_value(key: str, raw_value: str) -> str:
     if not toks:
         return raw_value
 
-    # 일반적으로 첫 토큰만 비교
+    # In general, compare only the first token
     return toks[0].strip(',').strip()
 
 
@@ -234,13 +230,13 @@ def classify_key(key: str) -> str:
 
 def parse_lattice_block(lines, idx, store):
     """
-    OUTCAR의 'direct lattice vectors' 블록 파싱
+    Parse the 'direct lattice vectors' block from OUTCAR
     """
     header = lines[idx]
     if "direct lattice vectors" not in header.lower():
         return
 
-    # 다음 3줄 기대
+    # Expect the next three lines
     for j, name in enumerate(["LATTICE_A", "LATTICE_B", "LATTICE_C"], start=1):
         if idx + j >= len(lines):
             return
@@ -256,7 +252,7 @@ def parse_lattice_block(lines, idx, store):
 
 def parse_cell_volume(lines, store):
     """
-    Could not parse from OUTCAR volume of cell 추출
+    Extract the volume of cell value from OUTCAR
     """
     vol_re = re.compile(r'volume of cell\s*:\s*([+-]?(?:\d+\.\d*|\.\d+|\d+)(?:[EeDd][+-]?\d+)?)', re.IGNORECASE)
     for line in lines:
@@ -273,22 +269,22 @@ def parse_outcar(path: str) -> OrderedDict:
         with open(path, "r", encoding="utf-8", errors="ignore") as f:
             lines = f.readlines()
     except FileNotFoundError:
-        print(f"[오류] 파일을 찾을 수 없습니다: {path}", file=sys.stderr)
+        print(f"[Error] Could not find the file: {path}", file=sys.stderr)
         sys.exit(1)
 
-    # lattice / volume 선파싱
+    # Pre-parse lattice vectors and cell volume
     for i, line in enumerate(lines):
         if "direct lattice vectors" in line.lower():
             parse_lattice_block(lines, i, data)
             break
     parse_cell_volume(lines, data)
 
-    # 일반 라인 파싱
+    # Parse general lines
     for line in lines:
         if should_skip_line(line):
             continue
 
-        # 특수 다단어 key
+        # Special multi-word keys
         special_hit = False
         for pattern, skey in SPECIAL_PATTERNS:
             m = pattern.search(line)
@@ -299,7 +295,7 @@ def parse_outcar(path: str) -> OrderedDict:
         if special_hit:
             continue
 
-        # 일반 KEY=VALUE
+        # General KEY=VALUE pairs
         matches = PAIR_RE.findall(line)
         if matches:
             for raw_key, raw_val in matches:
@@ -332,7 +328,7 @@ def compare_category(d1: OrderedDict, d2: OrderedDict, category: str):
             v1 = d1[key]["core_values"]
             v2 = d2[key]["core_values"]
 
-            # POTCAR/시스템 Info는 full sequence 비교
+            # For POTCAR/system info, compare the full sequence
             if category == "potcar_system":
                 s1 = " || ".join(v1)
                 s2 = " || ".join(v2)
@@ -369,7 +365,7 @@ def compare_category(d1: OrderedDict, d2: OrderedDict, category: str):
 
 def compare_unknown_stable(d1: OrderedDict, d2: OrderedDict):
     """
-    unknown 중에서도 stable한 항목은 별도 섹션으로 보여줌
+    Show stable unknown fields in a separate section
     """
     diff_rows = []
     only1_rows = []
@@ -404,7 +400,7 @@ def compare_unknown_stable(d1: OrderedDict, d2: OrderedDict):
 
 def compare_unknown_dynamic(d1: OrderedDict, d2: OrderedDict):
     """
-    unknown 중 dynamic한 항목은 결과/이력 참고용으로 요약
+    Summarize dynamic unknown fields as reference/history information
     """
     diff_rows = []
     keys = sorted(set(d1.keys()) | set(d2.keys()))
@@ -434,7 +430,7 @@ def compare_unknown_dynamic(d1: OrderedDict, d2: OrderedDict):
 def print_diff_table(title, rows, key_w):
     print(f"\n[{title}]")
     if not rows:
-        print("(없음)")
+        print("(none)")
         return
 
     print(f"{'KEY':<{key_w}} | OUTCAR1 | OUTCAR2")
@@ -446,7 +442,7 @@ def print_diff_table(title, rows, key_w):
 def print_single_table(title, rows, key_w):
     print(f"\n[{title}]")
     if not rows:
-        print("(없음)")
+        print("(none)")
         return
 
     print(f"{'KEY':<{key_w}} | VALUE")
@@ -458,21 +454,21 @@ def print_single_table(title, rows, key_w):
 def main():
     parser = argparse.ArgumentParser(
         description=(
-            "두 개의 VASP Could not parse from OUTCAR 계산 결과/iteration 로그를 제외하고, "
-            "실제 계산 설정 / 재시작·출력 설정 / POTCAR·시스템 메타데이터 / 결과·이력 항목으로 나누어 비교합니다."
+            "Compare two VASP OUTCAR files while excluding calculation-result and iteration-log sections, and group differences into "
+            "actual calculation settings, restart/output settings, POTCAR/system metadata, and result/history fields."
         )
     )
-    parser.add_argument("outcar1", help="첫 번째 OUTCAR")
-    parser.add_argument("outcar2", help="두 번째 OUTCAR")
+    parser.add_argument("outcar1", help="First OUTCAR")
+    parser.add_argument("outcar2", help="Second OUTCAR")
     parser.add_argument(
         "--show-history",
         action="store_true",
-        help="결과/이력 항목 및 unknown dynamic 항목 요약도 출력"
+        help="Also print summaries for result/history fields and dynamic unknown fields"
     )
     parser.add_argument(
         "--show-count",
         action="store_true",
-        help="collected 키 개수 출력"
+        help="Print the number of collected keys"
     )
     args = parser.parse_args()
 
@@ -480,41 +476,41 @@ def main():
     d2 = parse_outcar(args.outcar2)
 
     if args.show_count:
-        print(f"[Info] OUTCAR1 수집 키 수: {len(d1)}")
-        print(f"[Info] OUTCAR2 수집 키 수: {len(d2)}")
+        print(f"[Info] Number of collected keys in OUTCAR1: {len(d1)}")
+        print(f"[Info] Number of collected keys in OUTCAR2: {len(d2)}")
 
     key_w = max([24] + [len(k) for k in set(list(d1.keys()) + list(d2.keys()))])
 
-    # 1) 실제 계산 설정
+    # 1) Actual calculation settings
     diff_a, only1_a, only2_a = compare_category(d1, d2, "actual")
     print_diff_table("Differences in actual calculation settings", diff_a, key_w)
-    print_single_table("OUTCAR1에만 있는 실제 계산 설정", only1_a, key_w)
-    print_single_table("OUTCAR2에만 있는 실제 계산 설정", only2_a, key_w)
+    print_single_table("Actual calculation settings present only in OUTCAR1", only1_a, key_w)
+    print_single_table("Actual calculation settings present only in OUTCAR2", only2_a, key_w)
 
-    # 2) 재시작/출력 설정
+    # 2) Restart/output settings
     diff_r, only1_r, only2_r = compare_category(d1, d2, "restart_output")
     print_diff_table("Differences in restart/output settings", diff_r, key_w)
-    print_single_table("OUTCAR1에만 있는 재시작/출력 설정", only1_r, key_w)
-    print_single_table("OUTCAR2에만 있는 재시작/출력 설정", only2_r, key_w)
+    print_single_table("Restart/output settings present only in OUTCAR1", only1_r, key_w)
+    print_single_table("Restart/output settings present only in OUTCAR2", only2_r, key_w)
 
-    # 3) POTCAR/시스템 메타데이터
+    # 3) POTCAR/system metadata
     diff_p, only1_p, only2_p = compare_category(d1, d2, "potcar_system")
     print_diff_table("Differences in POTCAR/system metadata", diff_p, key_w)
-    print_single_table("OUTCAR1에만 있는 POTCAR/시스템 메타데이터", only1_p, key_w)
-    print_single_table("OUTCAR2에만 있는 POTCAR/시스템 메타데이터", only2_p, key_w)
+    print_single_table("POTCAR/system metadata present only in OUTCAR1", only1_p, key_w)
+    print_single_table("POTCAR/system metadata present only in OUTCAR2", only2_p, key_w)
 
-    # 4) unknown stable
+    # 4) Stable unknown fields
     diff_u, only1_u, only2_u = compare_unknown_stable(d1, d2)
     print_diff_table("Differences in other stable fields (unclassified)", diff_u, key_w)
-    print_single_table("OUTCAR1에만 있는 기타 안정 항목", only1_u, key_w)
-    print_single_table("OUTCAR2에만 있는 기타 안정 항목", only2_u, key_w)
+    print_single_table("Other stable fields present only in OUTCAR1", only1_u, key_w)
+    print_single_table("Other stable fields present only in OUTCAR2", only2_u, key_w)
 
-    # 5) 결과/이력 항목은 요청 시만
+    # 5) Result/history fields are shown only on request
     if args.show_history:
         diff_h, only1_h, only2_h = compare_category(d1, d2, "result_history")
         print_diff_table("Summary of result/history fields (reference)", diff_h, key_w)
-        print_single_table("OUTCAR1에만 있는 결과/이력 항목", only1_h, key_w)
-        print_single_table("OUTCAR2에만 있는 결과/이력 항목", only2_h, key_w)
+        print_single_table("Result/history fields present only in OUTCAR1", only1_h, key_w)
+        print_single_table("Result/history fields present only in OUTCAR2", only2_h, key_w)
 
         diff_ud = compare_unknown_dynamic(d1, d2)
         print_diff_table("Summary of other dynamic fields (unclassified)", diff_ud, key_w)

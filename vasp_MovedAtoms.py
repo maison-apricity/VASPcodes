@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# GitHub backup copy
-# Original file: VASP_moveCheck.py
-# Suggested English filename: vasp_xdatcar_moved_atoms.py
-
 import argparse
 import numpy as np
 from pathlib import Path

@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# GitHub backup copy
-# Original file: VASP_POSCAR_selective.py
-# Suggested English filename: vasp_poscar_selective_flags.py
-
 from pathlib import Path
 
 # =========================
@@ -58,7 +54,7 @@ def main():
 
     natoms = sum(counts)
 
-    # Selective dynamics 여부 확인
+    # Check whether Selective dynamics is present
     selective_present = False
     if idx < len(lines) and lines[idx].strip().lower().startswith("s"):
         selective_present = True
@@ -77,7 +73,7 @@ def main():
     # Coordinate lines
     coord_lines = lines[idx:idx + natoms]
     if len(coord_lines) != natoms:
-        raise ValueError(f"Number of atoms({natoms})와 Number of coordinate lines({len(coord_lines)})가 맞지 않습니다.")
+        raise ValueError(f"Number of atoms ({natoms}) does not match the number of coordinate lines ({len(coord_lines)}).")
 
     max_index = natoms - 1
     bad = sorted(i for i in TARGET_INDICES if i < 0 or i > max_index)
@@ -92,7 +88,7 @@ def main():
     for i, line in enumerate(coord_lines):
         parts = line.split()
         if len(parts) < 3:
-            raise ValueError(f"{i}번 원자의 좌표 줄 형식이 잘못되었습니다: {line}")
+            raise ValueError(f"Invalid coordinate line format for atom index {i}: {line}")
 
         xyz = parts[:3]
 
@@ -126,7 +122,7 @@ def main():
     print(f"[Info] Total number of atoms : {natoms}")
     print(f"[Info] T T T Number of atoms : {len(TARGET_INDICES)}")
     print(f"[Info] F F F Number of atoms : {natoms - len(TARGET_INDICES)}")
-    print(f"[Info] zero-based 최대 인덱스 : {max_index}")
+    print(f"[Info] Maximum zero-based index : {max_index}")
 
 
 if __name__ == "__main__":

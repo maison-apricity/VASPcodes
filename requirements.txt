@@ -1,6 +1,6 @@
 numpy
-matplotlib
-plotly
 ase
 py4vasp
+plotly
 pymatgen
+matplotlib
