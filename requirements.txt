@@ -1,6 +1,0 @@
-numpy
-ase
-py4vasp
-plotly
-pymatgen
-matplotlib

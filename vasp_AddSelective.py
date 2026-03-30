@@ -6,12 +6,15 @@ from pathlib import Path
 # =========================
 # User settings
 # =========================
-INPUT_POSCAR = r"./POSCAR"
-OUTPUT_POSCAR = r"./POSCAR_modified"
+INPUT_POSCAR = r"C:\Users\Choi\Downloads\Workspace\POSCAR_init"
+OUTPUT_POSCAR = r"C:\Users\Choi\Downloads\Workspace\POSCAR_init_mod"
 
 # Zero-based atom indices
 TARGET_INDICES = {
-    176, 181, 182, 183
+    100, 101, 103, 108, 109, 110, 111, 112, 113,
+    115, 118, 119, 120, 121, 122, 123, 125, 128,
+    129, 130, 131, 132, 133, 135, 138, 140, 141, 
+    142, 143, 150, 176, 181, 182, 183
 }
 
 
