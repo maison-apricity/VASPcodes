@@ -13,7 +13,7 @@ venv/
 *.pdf
 *.svg
 *.log
-*/*VTSTscripts*/
+VTSTscripts/
 VASPscripts/
 */.vscode/
 .vscode/
